@@ -37,13 +37,13 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code != HTTPStatus.OK:
-        raise ForeignServerError('Что-то пошло не так на внешнем сервере')
-    return json.loads(response.text)
+    return response
 
 def check_response(response):
-
-    ...
+    if response.status_code != HTTPStatus.OK:
+        raise ForeignServerError('Что-то пошло не так на внешнем сервере')
+    homeworks = json.loads(response.text).get('homeworks')
+    return homeworks
 
 
 def parse_status(homework):
@@ -97,5 +97,6 @@ def main():
 
 if __name__ == '__main__':
     a = get_api_answer(current_timestamp=0)
+    b = check_response(a)
     print('')
     #main()
