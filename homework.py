@@ -1,11 +1,21 @@
-...
+import logging
+import os
+import sys
+import time
+import json
+from http import HTTPStatus
+
+import requests
+import telegram
+from dotenv import load_dotenv
+from exceptions import ForeignServerError
 
 load_dotenv()
+logging.basicConfig()
 
-
-PRACTICUM_TOKEN = ...
-TELEGRAM_TOKEN = ...
-TELEGRAM_CHAT_ID = ...
+PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
@@ -26,9 +36,10 @@ def send_message(bot, message):
 def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-
-    ...
-
+    response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
+    if response.status_code != HTTPStatus.OK:
+        raise ForeignServerError('Что-то пошло не так на внешнем сервере')
+    return json.loads(response.text)
 
 def check_response(response):
 
@@ -49,13 +60,18 @@ def parse_status(homework):
 
 
 def check_tokens():
-    ...
+    try:
+        PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
+    except NameError:
+        # записть лог
+        sys.exit()
+    
 
 
 def main():
     """Основная логика работы бота."""
+    check_tokens()
 
-    ...
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
@@ -80,4 +96,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    a = get_api_answer(current_timestamp=0)
+    print('')
+    #main()
