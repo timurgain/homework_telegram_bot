@@ -99,6 +99,7 @@ def check_tokens() -> bool:
 
 def main():
     """Основная логика работы бота."""
+    logger.info('Запуск приложения')
     if not check_tokens():
         quit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
