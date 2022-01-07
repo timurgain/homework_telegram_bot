@@ -15,8 +15,8 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
-# RETRY_TIME = 10
+# RETRY_TIME = 600
+RETRY_TIME = 10
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -52,6 +52,7 @@ def get_api_answer(current_timestamp: int) -> dict:
     timestamp = current_timestamp  # or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
+    logger.debug('Обратился к Яндекс.Практикум')
     try:
         response = response.json()
     except ValueError as e:
@@ -126,9 +127,6 @@ def main():
             if should_notice_api_error:
                 send_message(bot, message)
                 should_notice_api_error = False
-
-        except ValueError as e:
-            logger.error(f'Ошибка преобразования response в формат json: {e}')
 
         except HomeworksKeyNotFound:
             message = 'Отсутствие ожидаемого ключа "homeworks" в ответе API'
