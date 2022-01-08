@@ -7,7 +7,10 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import HomeworksKeyNotFound, VerdictNotFound
+from exceptions import (HomeworksIsNotList, HomeworksKeyNotFound,
+                        ResponseTextIsNotDict, VerdictNotFound,
+                        HomeworkStatusKeyNotFound,
+                        HomeworkNameKeyNotFound)
 
 load_dotenv()
 
@@ -52,6 +55,8 @@ def get_api_answer(current_timestamp: int) -> dict:
     params = {'from_date': timestamp}
     response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
     logger.debug('Обратился к Яндекс.Практикум')
+    if response.status_code != requests.codes.ok:
+        raise requests.HTTPError
     try:
         response = response.json()
     except ValueError as e:
@@ -62,39 +67,42 @@ def get_api_answer(current_timestamp: int) -> dict:
 
 def check_response(response_text: dict) -> list:
     """Returns list of homeworks."""
-    return response_text.get('homeworks')
+    try:
+        if type(response_text) != dict:
+            raise ResponseTextIsNotDict
+        homeworks = response_text.get('homeworks')
+        if homeworks is None:
+            raise HomeworksKeyNotFound
+        if type(homeworks) != list:
+            raise HomeworksIsNotList
+        return homeworks
+    except AttributeError:
+        pass
 
 
 def parse_status(homework: dict) -> str:
     """Returns name and rewiever's verdict of a sertain homework."""
     homework_name = homework.get('homework_name')
     if homework_name is None:
-        logger.debug('Обновлений домашних работ пока нет.')
-        return None
+        raise HomeworkNameKeyNotFound
+
     homework_status = homework.get('status')
     if homework_status is None:
-        logger.debug('Отсутствие в ответе новых статусов.')
-        return None
+        raise HomeworkStatusKeyNotFound
+
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
-        return 'verdict_is_none'
+        raise VerdictNotFound
+        # return 'verdict_is_none'
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens() -> bool:
     """Checks the availability of environment variables."""
-    variables = (
-        'PRACTICUM_TOKEN',
-        'TELEGRAM_TOKEN',
-        # 'WRONG',
-        'TELEGRAM_CHAT_ID',
-    )
-    for v in variables:
-        if v in globals() and v is not None:
-            continue
-        logger.critical('Отсутствуют обязательные переменные окружения.')
-        return False
-    return True
+    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+        return True
+    logger.critical('Отсутствуют обязательные переменные окружения.')
+    return False
 
 
 def main():
@@ -120,7 +128,7 @@ def main():
                     raise VerdictNotFound
                 send_message(bot, message)
 
-        except requests.exceptions.ConnectionError as e:
+        except requests.HTTPError or requests.exceptions.ConnectionError as e:
             message = f'Недоступность эндпоинта: practicum.yandex.ru : {e}'
             logger.error(message)
             if should_notice_api_error:
