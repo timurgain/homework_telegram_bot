@@ -35,6 +35,12 @@ class ResponseTextIsNotDict(Exception):
     pass
 
 
+class HomeworkIsNotDict(Exception):
+    """Response.text is not dict type into API response."""
+
+    pass
+
+
 class VerdictNotFound(Exception):
     """Verdict is not described."""
 
