@@ -51,7 +51,7 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp: int) -> dict:
     """Makes a request to ya.practicum, takes unix time."""
-    timestamp = current_timestamp  # or int(time.time())
+    timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
     logger.debug('Обратился к Яндекс.Практикум')
@@ -68,11 +68,22 @@ def get_api_answer(current_timestamp: int) -> dict:
 
 def check_response(response_text: dict) -> list:
     """Returns list of homeworks."""
-    if type(response_text) != dict:
-        message = 'response_text ждем в формате dict, пришел другой формат'
-        raise ResponseTextIsNotDict(message)
+    # if type(response_text) != dict:
+    #     message = 'response_text ждем в формате dict, пришел другой формат'
+    #     raise ResponseTextIsNotDict(message)
 
-    homeworks = response_text.get('homeworks')
+    # if type(response_text) == list:
+    #     message = 'response_text ждем в формате dict, пришел другой формат'
+    #     raise ResponseTextIsNotDict(message)
+
+    # homeworks = response_text.get('homeworks')
+
+    if type(response_text) is dict:
+        homeworks = response_text.get('homeworks')
+
+    if type(response_text) is list:
+        homeworks = response_text[0].get('homeworks')
+
     if homeworks is None:
         message = 'Отсутствие ожидаемого ключа homeworks в ответе API'
         raise HomeworksKeyNotFound(message)
