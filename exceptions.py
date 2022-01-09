@@ -4,11 +4,22 @@ class ForeignServerError(Exception):
     pass
 
 
+class TelegramError(Exception):
+    """Telegram server error."""
+
+    pass
+
+
+class TokenAvailabilityError(Exception):
+    """Token is not available."""
+
+    pass
+
+
 class HomeworkNameKeyNotFound(Exception):
     """Homeworks key not found into API response."""
 
     pass
-
 
 
 class HomeworkStatusKeyNotFound(Exception):

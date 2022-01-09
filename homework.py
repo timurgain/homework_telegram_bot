@@ -7,10 +7,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import (HomeworkIsNotDict, HomeworkNameKeyNotFound,
-                        HomeworksIsNotList, HomeworksKeyNotFound,
-                        HomeworkStatusKeyNotFound, ResponseTextIsNotDict,
-                        VerdictNotFound)
+from exceptions import HomeworkIsNotDict, HomeworksIsNotList
 
 load_dotenv()
 
@@ -51,7 +48,7 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp: int) -> dict:
     """Makes a request to ya.practicum, takes unix time."""
-    timestamp = current_timestamp or int(time.time())
+    timestamp = current_timestamp
     params = {'from_date': timestamp}
     response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
     logger.debug('Обратился к Яндекс.Практикум')
@@ -68,16 +65,6 @@ def get_api_answer(current_timestamp: int) -> dict:
 
 def check_response(response_text: dict) -> list:
     """Returns list of homeworks."""
-    # if type(response_text) != dict:
-    #     message = 'response_text ждем в формате dict, пришел другой формат'
-    #     raise ResponseTextIsNotDict(message)
-
-    # if type(response_text) == list:
-    #     message = 'response_text ждем в формате dict, пришел другой формат'
-    #     raise ResponseTextIsNotDict(message)
-
-    # homeworks = response_text.get('homeworks')
-
     if type(response_text) is dict:
         homeworks = response_text.get('homeworks')
 
@@ -85,8 +72,7 @@ def check_response(response_text: dict) -> list:
         homeworks = response_text[0].get('homeworks')
 
     if homeworks is None:
-        message = 'Отсутствие ожидаемого ключа homeworks в ответе API'
-        raise HomeworksKeyNotFound(message)
+        raise KeyError('Отсутствие ожидаемого ключа homeworks в ответе API')
     if type(homeworks) != list:
         message = 'homeworks ждем в формате list, пришел другой формат'
         raise HomeworksIsNotList(message)
@@ -102,19 +88,16 @@ def parse_status(homework: dict) -> str:
 
     homework_name = homework.get('homework_name')
     if homework_name is None:
-        message = 'Отсутствие ожидаемого ключа homework_name в ответе API'
-        raise HomeworkNameKeyNotFound(message)
+        raise KeyError('В ответе API отсутствует ожидаемый ключ homework_name')
 
     homework_status = homework.get('status')
     if homework_status is None:
-        message = 'Отсутствие ожидаемого ключа status в ответе API'
-        raise HomeworkStatusKeyNotFound(message)
+        raise KeyError('В ответе API отсутствует ожидаемый ключ status')
 
     verdict = HOMEWORK_STATUSES.get(homework_status)
     if verdict is None:
-        message = ('Недокументированный статус домашней работы, '
-                   'обнаруженный в ответе API.')
-        raise VerdictNotFound(message)
+        raise KeyError('Недокументированный статус домашней работы, '
+                       'обнаруженный в ответе API.')
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -123,7 +106,6 @@ def check_tokens() -> bool:
     """Checks the availability of environment variables."""
     if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         return True
-    logger.critical('Отсутствуют обязательные переменные окружения.')
     return False
 
 
@@ -131,7 +113,9 @@ def main():
     """Основная логика работы бота."""
     logger.info('Запуск приложения')
     if not check_tokens():
+        logger.critical('Токен недоступен, бот покидает нас...')
         quit()
+
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     # current_timestamp = 0  # для дебага, все домашки с основания веков
