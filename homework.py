@@ -122,8 +122,8 @@ def main():
     if not check_tokens():
         quit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    # current_timestamp = int(time.time())
-    current_timestamp = 0  # для дебага, все домашки с основания веков
+    current_timestamp = int(time.time())
+    # current_timestamp = 0  # для дебага, все домашки с основания веков
     cache_error_messages = []
     cache_homework_statuses = {}
 
