@@ -40,16 +40,14 @@ def send_message(bot, message):
     """Sends a message to user with TELEGRAM_CHAT_ID."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
+        logger.info('Удачная отправка сообщения в Telegram.')
     except Exception as e:
         logger.error(f'Cбой при отправке сообщения в Telegram: {e}')
-    else:
-        logger.info('Удачная отправка сообщения в Telegram.')
 
 
 def get_api_answer(current_timestamp: int) -> dict:
     """Makes a request to ya.practicum, takes unix time."""
-    timestamp = current_timestamp
-    params = {'from_date': timestamp}
+    params = {'from_date': current_timestamp}
     response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
     logger.debug('Обратился к Яндекс.Практикум')
     if response.status_code != requests.codes.ok:
@@ -104,8 +102,15 @@ def parse_status(homework: dict) -> str:
 
 def check_tokens() -> bool:
     """Checks the availability of environment variables."""
-    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+    tokens = {
+        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
+    }
+    errors = [key for key, value in tokens.items() if not value]
+    if len(errors) == 0:
         return True
+    logger.critical(f'Токен недоступен ({", ".join(errors)}), бот выключается')
     return False
 
 
