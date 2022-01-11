@@ -7,7 +7,8 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import HomeworkIsNotDict, HomeworksIsNotList
+from exceptions import (ForeignServerError, HomeworkIsNotDict,
+                        HomeworksIsNotList)
 
 load_dotenv()
 
@@ -16,7 +17,7 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_TIME = 600
-ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
+ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/55'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 HOMEWORK_STATUSES = {
@@ -48,16 +49,36 @@ def send_message(bot, message):
 def get_api_answer(current_timestamp: int) -> dict:
     """Makes a request to ya.practicum, takes unix time."""
     params = {'from_date': current_timestamp}
-    response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
-    logger.debug('Обратился к Яндекс.Практикум')
+    try:
+        response = requests.get(url=ENDPOINT, headers=HEADERS, params=params)
+        logger.debug('Обратился к Яндекс.Практикум')
+    except requests.exceptions.RequestException as e:
+        raise ForeignServerError(e)
+
     if response.status_code != requests.codes.ok:
-        message = 'Недоступность эндпоинта: practicum.yandex.ru'
+        message = f'Недоступен {ENDPOINT}, код: {response.status_code}'
         raise requests.HTTPError(message)
+
     try:
         response = response.json()
-    except ValueError as e:
-        message = f'Ошибка преобразования response в формат json: {e}'
-        raise ValueError(message)
+    except KeyError as e:
+        raise KeyError(e)
+
+    # Я не уверен, что правильно понял комментарий:
+    # "Ищи в response.json() ключи error или code."
+    # в документации requests не смог найти подробностей
+    # в режиме дебага тоже не получилось имитировать эти ключи (
+
+    if type(response) is dict:
+        is_error = response.get('error')
+        is_code = response.get('code')
+    else:
+        is_error = response[0].get('error')
+        is_code = response[0].get('code')
+
+    if is_error or is_code:
+        message = f'Ошибка внешнего сервера: {is_error}, {is_code}'
+        raise ForeignServerError(message)
     return response
 
 
@@ -152,6 +173,7 @@ def main():
                 send_message(bot, message)
 
         finally:
+            logger.info('Ухожу на следующий виток цикла программы')
             current_timestamp = int(time.time())
             time.sleep(RETRY_TIME)
 
