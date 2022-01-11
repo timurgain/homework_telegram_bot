@@ -64,17 +64,12 @@ def get_api_answer(current_timestamp: int) -> dict:
     except KeyError as e:
         raise KeyError(e)
 
-    # Я не уверен, что правильно понял комментарий:
-    # "Ищи в response.json() ключи error или code."
-    # в документации requests не смог найти подробностей
-    # в режиме дебага тоже не получилось имитировать эти ключи (
-
+    # Сторонний API может содержать инфу об ошибках, чаще под этими ключами
+    # не уверен что нужно так проверять
     if type(response) is dict:
-        is_error = response.get('error')
-        is_code = response.get('code')
+        is_error, is_code = response.get('error'), response.get('code')
     else:
-        is_error = response[0].get('error')
-        is_code = response[0].get('code')
+        is_error, is_code = response[0].get('error'), response[0].get('code')
 
     if is_error or is_code:
         message = f'Ошибка внешнего сервера: {is_error}, {is_code}'
@@ -139,7 +134,6 @@ def main():
     """Основная логика работы бота."""
     logger.info('Запуск приложения')
     if not check_tokens():
-        logger.critical('Токен недоступен, бот покидает нас...')
         quit()
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
